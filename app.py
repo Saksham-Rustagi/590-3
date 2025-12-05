@@ -539,9 +539,6 @@ with tab_crime_bar:
         # but always include any highlighted counties even if they are not in
         # those extremes.
         crime_bar_df["is_highlight"] = crime_bar_df["county_key"].isin(highlight_keys)
-        crime_bar_df["label_text"] = crime_bar_df["county_name"].where(
-            crime_bar_df["is_highlight"], ""
-        )
         crime_bar_df_sorted = crime_bar_df.sort_values("crime_rate", ascending=False)
         top_8 = crime_bar_df_sorted.head(8)
         bottom_8 = crime_bar_df_sorted.tail(8)
@@ -552,14 +549,20 @@ with tab_crime_bar:
         )
 
         # Classify bars as top/bottom/highlighted for coloring & legend.
+        # If a county is both in top/bottom 8 and highlighted, it should be
+        # treated as *highlighted* so it visibly moves into that group.
         top_keys = set(top_8["county_key"])
         bottom_keys = set(bottom_8["county_key"])
         crime_bar_display["group"] = "Highlighted (selected)"
         crime_bar_display.loc[
-            crime_bar_display["county_key"].isin(top_keys), "group"
+            (~crime_bar_display["county_key"].isin(highlight_keys))
+            & (crime_bar_display["county_key"].isin(top_keys)),
+            "group",
         ] = "Top 8 (highest crime)"
         crime_bar_display.loc[
-            crime_bar_display["county_key"].isin(bottom_keys), "group"
+            (~crime_bar_display["county_key"].isin(highlight_keys))
+            & (crime_bar_display["county_key"].isin(bottom_keys)),
+            "group",
         ] = "Bottom 8 (lowest crime)"
 
         fig_crime_bar = px.bar(
@@ -574,9 +577,7 @@ with tab_crime_bar:
                 "Bottom 8 (lowest crime)": "#c7e9c0",    # pastel green
                 "Highlighted (selected)": "#fc8d59",     # stronger accent
             },
-            text="label_text",
         )
-        fig_crime_bar.update_traces(textposition="outside")
         fig_crime_bar.update_layout(showlegend=True)
         state_avg = crime_avg_by_county["crime_rate"].mean()
         fig_crime_bar.add_vline(
