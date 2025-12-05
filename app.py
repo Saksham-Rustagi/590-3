@@ -42,25 +42,95 @@ housing_df, acs_county_df, acs_tract_df, crime_df = load_all_data()
 
 
 # --- Sidebar controls --------------------------------------------------------
-st.sidebar.title("Buyer Profile & Filters")
-user_income = st.sidebar.number_input(
-    "Annual household income (USD)", min_value=20_000, max_value=500_000, value=60_000, step=5_000
-)
-housing_share = st.sidebar.slider("Max % of income for housing", min_value=0.10, max_value=0.40, value=0.30, step=0.01)
-down_payment = st.sidebar.slider("Down payment fraction", min_value=0.0, max_value=0.5, value=0.20, step=0.05)
-interest_rate = st.sidebar.slider("Mortgage interest rate (annual)", min_value=0.02, max_value=0.10, value=0.06, step=0.005)
-loan_years = st.sidebar.slider("Loan term (years)", min_value=10, max_value=40, value=30, step=5)
+# Default values for easy reset.
+DEFAULT_USER_INCOME = 60_000
+DEFAULT_HOUSING_SHARE = 0.30
+DEFAULT_DOWN_PAYMENT = 0.20
+DEFAULT_INTEREST_RATE = 0.06
+DEFAULT_LOAN_YEARS = 30
+DEFAULT_SAMPLE_LIMIT = 8_000
 
 ocean_options = sorted(housing_df["ocean_proximity"].unique())
-ocean_filters = st.sidebar.multiselect(
-    "Preferred ocean proximity", options=ocean_options, default=ocean_options
+county_choices = county_selection_options(acs_county_df)
+
+st.sidebar.title("Buyer Profile & Filters")
+
+# Reset button: restore sidebar filters to their original defaults.
+if st.sidebar.button("Reset filters to defaults"):
+    st.session_state["user_income"] = DEFAULT_USER_INCOME
+    st.session_state["housing_share"] = DEFAULT_HOUSING_SHARE
+    st.session_state["down_payment"] = DEFAULT_DOWN_PAYMENT
+    st.session_state["interest_rate"] = DEFAULT_INTEREST_RATE
+    st.session_state["loan_years"] = DEFAULT_LOAN_YEARS
+    st.session_state["ocean_filters"] = ocean_options
+    st.session_state["target_counties"] = county_choices
+    st.session_state["sample_limit"] = DEFAULT_SAMPLE_LIMIT
+    st.rerun()
+
+user_income = st.sidebar.number_input(
+    "Annual household income (USD)",
+    min_value=20_000,
+    max_value=500_000,
+    value=DEFAULT_USER_INCOME,
+    step=5_000,
+    key="user_income",
+)
+housing_share = st.sidebar.slider(
+    "Max % of income for housing",
+    min_value=0.10,
+    max_value=0.40,
+    value=DEFAULT_HOUSING_SHARE,
+    step=0.01,
+    key="housing_share",
+)
+down_payment = st.sidebar.slider(
+    "Down payment fraction",
+    min_value=0.0,
+    max_value=0.5,
+    value=DEFAULT_DOWN_PAYMENT,
+    step=0.05,
+    key="down_payment",
+)
+interest_rate = st.sidebar.slider(
+    "Mortgage interest rate (annual)",
+    min_value=0.02,
+    max_value=0.10,
+    value=DEFAULT_INTEREST_RATE,
+    step=0.005,
+    key="interest_rate",
+)
+loan_years = st.sidebar.slider(
+    "Loan term (years)",
+    min_value=10,
+    max_value=40,
+    value=DEFAULT_LOAN_YEARS,
+    step=5,
+    key="loan_years",
 )
 
-county_choices = county_selection_options(acs_county_df)
-target_counties = st.sidebar.multiselect("Target counties", options=county_choices, default=county_choices)
+ocean_filters = st.sidebar.multiselect(
+    "Preferred ocean proximity",
+    options=ocean_options,
+    default=ocean_options,
+    key="ocean_filters",
+)
+
+target_counties = st.sidebar.multiselect(
+    "Target counties",
+    options=county_choices,
+    default=county_choices,
+    key="target_counties",
+)
 
 st.sidebar.markdown("---")
-sample_limit = st.sidebar.slider("Max points on map (sampling)", min_value=1000, max_value=20000, value=8000, step=1000)
+sample_limit = st.sidebar.slider(
+    "Max points on map (sampling)",
+    min_value=1000,
+    max_value=20000,
+    value=DEFAULT_SAMPLE_LIMIT,
+    step=1000,
+    key="sample_limit",
+)
 
 
 # --- Derived data ------------------------------------------------------------
